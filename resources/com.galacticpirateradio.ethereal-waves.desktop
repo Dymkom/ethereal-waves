@@ -2,6 +2,7 @@
 Name=Ethereal Waves
 Name[uk]=Лунохвиля
 Comment=Music player based on libcosmic
+Comment[cs]=Hudební přehrávač postavený na libcosmic
 Comment[uk]=Музичний програвач на базі libcosmic
 Type=Application
 Icon=com.galacticpirateradio.ethereal-waves
