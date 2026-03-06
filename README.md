@@ -24,7 +24,7 @@ Non-exhaustive list of planned features in no particular order:
 - [ ] Shuffle modes
 - [ ] Condensed responsive layout
 - [ ] More keyboard shortcuts
-- [ ] Drag and drop support
+- [x] Drag and drop support
 - [ ] Playlist duplicate management
 - [ ] Partial update (Only add new tracks)
 

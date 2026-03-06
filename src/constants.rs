@@ -31,3 +31,6 @@ pub const VALID_AUDIO_EXTENSIONS: &[&str] = &["flac", "m4a", "mp3", "ogg", "opus
 pub const NEW_PLAYLIST_INPUT_ID: &str = "new_playlist_input_id";
 pub const RENAME_PLAYLIST_INPUT_ID: &str = "rename_playlist_input_id";
 pub const SEARCH_INPUT_ID: &str = "Text Search";
+
+/// Mime for Drag and Drop
+pub const MIME_TRACK_IDS: &str = "application/x-ethereal-waves-track-ids";

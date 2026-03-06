@@ -43,6 +43,8 @@ repeat-one = Repeat One
 repeat-all = Repeat All
 add-now-playing-to = Add Now Playing to
 select-all = Select All
+one-track-selected = 1 track selected
+tracks-selected = tracks selected
 
 previous = Previous
 play = Play

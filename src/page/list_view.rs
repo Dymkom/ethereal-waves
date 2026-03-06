@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0
 
-use crate::app::{AppModel, Message, SortBy};
+use crate::app::{AppModel, Message, SortBy, TrackDropData};
 use crate::constants::*;
 use crate::fl;
 use cosmic::{
     cosmic_theme,
-    iced::{Alignment, Color, Length},
+    iced::{Alignment, Color, Length, clipboard::dnd::DndAction},
+    iced_core::widget::Tree,
     theme, widget,
 };
 
@@ -66,6 +67,15 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
     )));
 
     let mut count: u32 = view_model.list_start as u32 + 1;
+
+    let selected_track_ids: Vec<String> = view_model
+        .visible_tracks
+        .iter()
+        .filter(|(_, t)| t.selected)
+        .filter_map(|(_, t)| t.metadata.id.clone())
+        .collect();
+
+    let selected_count = selected_track_ids.len();
 
     for (index, track) in view_model
         .visible_tracks
@@ -179,11 +189,63 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
 
         let row_button = widget::button::custom(row_element)
             .class(button_style(track.1.selected, false))
-            .on_press_down(Message::ChangeTrack(id, track.0))
+            .on_press_down(Message::ChangeTrack(id.clone(), track.0))
             .padding(0);
 
-        rows =
-            rows.push(widget::mouse_area(row_button).on_release(Message::ListSelectRow(track.0)));
+        let row_mouse = widget::mouse_area(row_button).on_release(Message::ListSelectRow(track.0));
+
+        let drag_count = if track.1.selected && selected_count > 0 {
+            selected_count
+        } else {
+            1
+        };
+
+        let drag_label = if drag_count == 1 {
+            fl!("one-track-selected")
+        } else {
+            format!("{drag_count} {}", fl!("tracks-selected"))
+        };
+
+        // If user drags an unselected row, select it when drag begins.
+        // If they drag a selected row, preserve multi-selection.
+        let on_start = if track.1.selected {
+            None
+        } else {
+            Some(Message::ListSelectRow(track.0))
+        };
+
+        // Drag all selected row ids or just the current row id
+        let drag_ids: Vec<String> = if track.1.selected && !selected_track_ids.is_empty() {
+            selected_track_ids.clone()
+        } else {
+            vec![id.clone()]
+        };
+
+        let draggable_row = widget::dnd_source::DndSource::new(row_mouse)
+            .drag_content(move || TrackDropData::new(drag_ids.clone()))
+            .action(DndAction::Copy)
+            .on_start(on_start)
+            .drag_icon(move |_offset| {
+                // Visual elements next to the cursor
+                let badge: cosmic::Element<'static, ()> = widget::layer_container(
+                    widget::column().push(
+                        widget::row()
+                            .push(widget::text::body(drag_label.clone()))
+                            .padding([6, 10]),
+                    ),
+                )
+                .layer(cosmic_theme::Layer::Primary)
+                .into();
+
+                let state = Tree::new(&badge).state;
+
+                let new_offset = cosmic::iced::Vector::new(20.0, 20.0);
+
+                (badge, state, new_offset)
+            })
+            .drag_threshold(1.0);
+
+        rows = rows.push(draggable_row);
 
         let visible_count = view_model.list_end.saturating_sub(view_model.list_start);
         let is_last_visible = index + 1 == visible_count;

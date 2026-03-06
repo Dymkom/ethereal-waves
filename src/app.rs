@@ -10,9 +10,7 @@ use crate::key_bind::key_binds;
 use crate::library::Library;
 use crate::menu::menu_bar;
 use crate::mpris::{MediaPlayer2, MediaPlayer2Player, MprisCommand, MprisState};
-use crate::page::empty_library;
-use crate::page::list_view;
-use crate::page::loading;
+use crate::page::{empty_library, list_view, loading};
 use crate::playback_state::{PlaybackStatus, RepeatMode};
 use crate::playlist::{Playlist, Track};
 use crate::services::library_service::{LibraryProgress, LibraryService};
@@ -29,6 +27,7 @@ use cosmic::{
     iced::{
         self, Alignment, Length, Size, Subscription,
         alignment::{Horizontal, Vertical},
+        clipboard::mime::{AllowedMimeTypes, AsMimeTypes},
         event::{self, Event},
         font::{Font, Weight},
         keyboard::{Event as KeyEvent, Key, Modifiers, key::Named},
@@ -47,6 +46,7 @@ use cosmic::{
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet, VecDeque},
     path::PathBuf,
     process,
@@ -77,6 +77,7 @@ pub struct AppModel {
     about: About,
     /// Contains items assigned to the nav bar panel.
     nav: nav_bar::Model,
+    nav_dnd_id: widget::dnd_destination::DragId,
     /// Key bindings for the application's menu bar.
     pub key_binds: HashMap<menu::KeyBind, MenuAction>,
     /// Configuration data that persists between application runs.
@@ -154,6 +155,7 @@ pub enum Message {
     ListViewSort(SortBy),
     MoveNavDown,
     MoveNavUp,
+    NavDrop(nav_bar::Id),
     NewPlaylist,
     Next,
     Noop,
@@ -276,6 +278,7 @@ impl cosmic::Application for AppModel {
             context_page: ContextPage::default(),
             about,
             nav,
+            nav_dnd_id: widget::dnd_destination::DragId::new(),
             key_binds: key_binds(),
             config: cosmic_config::Config::new(APP_ID, CONFIG_VERSION)
                 .map(|context| match Config::get_entry(&context) {
@@ -1023,6 +1026,17 @@ impl cosmic::Application for AppModel {
                 state_set!(playlist_nav_order, order);
             }
 
+            Message::NavDrop(entity) => {
+                match self.nav.data(entity) {
+                    // If dropped onto a playlist, add selected tracks to it
+                    Some(Page::Playlist(playlist_id)) => {
+                        return self.update(Message::AddSelectedToPlaylist(*playlist_id));
+                    }
+                    // If dropped onto something else, do nothing
+                    _ => {}
+                }
+            }
+
             Message::Next => {
                 self.playback_service
                     .next(self.state.repeat_mode.clone(), self.state.repeat);
@@ -1384,6 +1398,34 @@ impl cosmic::Application for AppModel {
             }
         }
         Task::none()
+    }
+
+    fn nav_bar(&self) -> Option<Element<'_, Action<Self::Message>>> {
+        if !self.core().nav_bar_active() {
+            return None;
+        }
+
+        let mut nav = widget::nav_bar_dnd::<Action<Message>, TrackDropData>(
+            &self.nav,
+            // on_activate: normal click behavior
+            nav_activate,
+            // on_dnd_enter
+            |_entity, _offered_mimes| Action::None,
+            // on_dnd_leave
+            |_entity| Action::None,
+            // on_dnd_drop
+            |entity, _data, _action| Action::App(Message::NavDrop(entity)),
+            self.nav_dnd_id,
+        )
+        .into_container()
+        .width(Length::Shrink)
+        .height(Length::Shrink);
+
+        if !self.core().is_condensed() {
+            nav = nav.max_width(280);
+        }
+
+        Some(nav.into())
     }
 
     /// Called when a nav item is selected.
@@ -2424,4 +2466,67 @@ pub struct ListViewModel {
     pub wrapping: Wrapping,
     pub row_align: Alignment,
     pub sort_direction_icon: String,
+}
+
+/// Drag payload
+#[derive(Debug, Clone)]
+pub struct TrackDropData {
+    pub track_ids: Vec<TrackId>,
+}
+
+impl TrackDropData {
+    pub fn new(track_ids: Vec<TrackId>) -> Self {
+        Self { track_ids }
+    }
+}
+
+// For the drag source
+impl AsMimeTypes for TrackDropData {
+    fn available(&self) -> Cow<'static, [String]> {
+        Cow::Owned(vec![MIME_TRACK_IDS.to_string(), "text/plain".to_string()])
+    }
+
+    fn as_bytes(&self, mime_type: &str) -> Option<Cow<'static, [u8]>> {
+        match mime_type {
+            MIME_TRACK_IDS => serde_json::to_vec(&self.track_ids).ok().map(Cow::Owned),
+            "text/plain" => Some(Cow::Owned(self.track_ids.join("\n").into_bytes())),
+            _ => None,
+        }
+    }
+}
+
+// For the drop destination
+impl AllowedMimeTypes for TrackDropData {
+    fn allowed() -> Cow<'static, [String]> {
+        Cow::Owned(vec![MIME_TRACK_IDS.to_string(), "text/plain".to_string()])
+    }
+}
+
+impl TryFrom<(Vec<u8>, String)> for TrackDropData {
+    type Error = String;
+
+    fn try_from((bytes, mime): (Vec<u8>, String)) -> Result<Self, Self::Error> {
+        match mime.as_str() {
+            MIME_TRACK_IDS => {
+                let track_ids: Vec<TrackId> =
+                    serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+                Ok(Self { track_ids })
+            }
+            "text/plain" => {
+                let text = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+                let track_ids = text
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                Ok(Self { track_ids })
+            }
+            other => Err(format!("Unsupported mime type: {other}")),
+        }
+    }
+}
+
+// For nav_bar click
+fn nav_activate(id: nav_bar::Id) -> Action<Message> {
+    Action::Cosmic(cosmic::app::Action::NavBar(id))
 }
