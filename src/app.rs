@@ -3,12 +3,10 @@
 use crate::config::{AppTheme, CONFIG_VERSION, Config, State};
 use crate::constants::*;
 use crate::fl;
-use crate::footer::footer;
 use crate::helpers::*;
 use crate::image_store::ImageStore;
 use crate::key_bind::key_binds;
 use crate::library::Library;
-use crate::menu::menu_bar;
 use crate::mpris::{MediaPlayer2, MediaPlayer2Player, MprisCommand, MprisState};
 use crate::page::{empty_library, list_view, loading};
 use crate::playback_state::{PlaybackStatus, RepeatMode};
@@ -16,7 +14,8 @@ use crate::playlist::{Playlist, Track};
 use crate::services::library_service::{LibraryProgress, LibraryService};
 use crate::services::playback_service::{PlaybackEvent, PlaybackService};
 use crate::services::playlist_service::PlaylistService;
-use cosmic::iced_widget::scrollable::{self, AbsoluteOffset};
+use crate::ui::{footer::footer, menu::menu_bar};
+
 use cosmic::prelude::*;
 use cosmic::{
     Action,
@@ -34,6 +33,7 @@ use cosmic::{
         window::Event as WindowEvent,
     },
     iced_core::text::Wrapping,
+    iced_widget::scrollable::{self, AbsoluteOffset},
     theme,
     widget::{
         self, Column,
@@ -816,7 +816,10 @@ impl cosmic::Application for AppModel {
                             self.list_start = 0;
                             return scrollable::scroll_to(
                                 self.list_scroll_id.clone(),
-                                AbsoluteOffset { x: 0.0, y: 0.0 },
+                                AbsoluteOffset {
+                                    x: Some(0.0 as f32),
+                                    y: Some(0.0 as f32),
+                                },
                             );
                         }
                     };
@@ -1114,7 +1117,10 @@ impl cosmic::Application for AppModel {
                 self.list_start = 0;
                 return scrollable::scroll_to(
                     self.list_scroll_id.clone(),
-                    AbsoluteOffset { x: 0.0, y: 0.0 },
+                    AbsoluteOffset {
+                        x: Some(0.0 as f32),
+                        y: Some(0.0 as f32),
+                    },
                 );
             }
 
@@ -1125,7 +1131,10 @@ impl cosmic::Application for AppModel {
                 self.list_start = 0;
                 return scrollable::scroll_to(
                     self.list_scroll_id.clone(),
-                    AbsoluteOffset { x: 0.0, y: 0.0 },
+                    AbsoluteOffset {
+                        x: Some(0.0 as f32),
+                        y: Some(0.0 as f32),
+                    },
                 );
             }
 
@@ -1264,8 +1273,8 @@ impl cosmic::Application for AppModel {
                     return scrollable::scroll_to::<Action<Message>>(
                         self.list_scroll_id.clone(),
                         AbsoluteOffset {
-                            x: 0.0,
-                            y: view_model.scroll_offset,
+                            x: Some(0.0 as f32),
+                            y: Some(view_model.scroll_offset as f32),
                         },
                     );
                 }
@@ -1419,7 +1428,7 @@ impl cosmic::Application for AppModel {
         )
         .into_container()
         .width(Length::Shrink)
-        .height(Length::Shrink);
+        .height(Length::Fill);
 
         if !self.core().is_condensed() {
             nav = nav.max_width(280);
@@ -1448,7 +1457,10 @@ impl cosmic::Application for AppModel {
                     self.update_title(),
                     scrollable::scroll_to(
                         self.list_scroll_id.clone(),
-                        AbsoluteOffset { x: 0.0, y: 0.0 },
+                        AbsoluteOffset {
+                            x: Some(0.0 as f32),
+                            y: Some(0.0 as f32),
+                        },
                     ),
                 ]);
             }

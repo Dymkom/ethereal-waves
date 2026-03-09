@@ -28,8 +28,8 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
     content = content.push(
         widget::row()
             .spacing(space_xxs)
-            .push(widget::horizontal_space().width(space_xxxs))
-            .push(widget::horizontal_space().width(Length::Fixed(view_model.icon_column_width)))
+            .push(widget::space::horizontal().width(space_xxxs))
+            .push(widget::space::horizontal().width(Length::Fixed(view_model.icon_column_width)))
             .push(
                 widget::text::heading("#")
                     .align_x(Alignment::End)
@@ -56,13 +56,13 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
                 &view_model.sort_direction_icon,
                 space_xxs,
             ))
-            .push(widget::horizontal_space().width(space_xxs)),
+            .push(widget::space::horizontal().width(space_xxs)),
     );
     content = content.push(widget::divider::horizontal::default());
 
     // Build rows
     let mut rows = widget::column();
-    rows = rows.push(widget::vertical_space().height(Length::Fixed(
+    rows = rows.push(widget::space::vertical().height(Length::Fixed(
         view_model.list_start as f32 * view_model.row_stride,
     )));
 
@@ -129,7 +129,7 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
                 );
             } else {
                 row_element = row_element.push(
-                    widget::horizontal_space().width(Length::Fixed(view_model.icon_column_width)),
+                    widget::space::horizontal().width(Length::Fixed(view_model.icon_column_width)),
                 );
             }
         }
@@ -263,10 +263,10 @@ pub fn content<'a>(app: &AppModel) -> widget::Column<'a, Message> {
     }
 
     let scrollable_contents = widget::row()
-        .push(widget::vertical_space().height(Length::Fixed(view_model.viewport_height)))
-        .push(widget::horizontal_space().width(space_xxs))
+        .push(widget::space::vertical().height(Length::Fixed(view_model.viewport_height)))
+        .push(widget::space::horizontal().width(space_xxs))
         .push(rows)
-        .push(widget::horizontal_space().width(space_xxs));
+        .push(widget::space::horizontal().width(space_xxs));
 
     let scroller = widget::scrollable(scrollable_contents)
         .id(app.list_scroll_id.clone())

@@ -11,6 +11,9 @@ pub const ZOOM_STEP: f32 = 2.0;
 pub const TRACK_INFO_LIST_TOTAL: usize = 10;
 pub const SEARCH_INPUT_WIDTH: f32 = 240.0;
 
+/// Dynamic UI Thresholds
+pub const MENU_CONDENSED_THRESHOLD: f32 = 1100.0;
+
 /// File System Constants
 pub const LIBRARY_FILENAME: &str = "library.json";
 pub const PLAYLISTS_DIR: &str = "playlists";

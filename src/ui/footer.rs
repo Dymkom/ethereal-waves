@@ -42,7 +42,7 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
         let updating_col = widget::column()
             .spacing(space_xxs)
             .push(widget::row().push(
-                widget::progress_bar(0.0..=100.0, app.update_percent).height(progress_bar_height),
+                widget::progress_bar(0.0..=100.0, app.update_percent).girth(progress_bar_height),
             ))
             .push(
                 widget::row()
@@ -51,7 +51,7 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
                     } else {
                         app.update_progress_display.to_string()
                     }))
-                    .push(widget::horizontal_space())
+                    .push(widget::space::horizontal())
                     .push(widget::tooltip(
                         widget::button::icon(widget::icon::from_name("process-stop-symbolic"))
                             .on_press(Message::CancelLibraryUpdate),
@@ -60,7 +60,7 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
                     ))
                     .align_y(Alignment::Center),
             )
-            .push(widget::vertical_space().height(space_xs));
+            .push(widget::space::vertical().height(space_xs));
 
         content = content.push(updating_col);
     }
@@ -156,14 +156,14 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
                 ))),
         )
         // Spacer above controls
-        .push(widget::vertical_space().height(space_xxs))
+        .push(widget::space::vertical().height(space_xxs))
         // Controls row
         .push(
             widget::row()
                 .align_y(Alignment::Center)
                 .spacing(space_xxs)
                 .width(Length::Fill)
-                .push(widget::horizontal_space().width(Length::Fill))
+                .push(widget::space::horizontal().width(Length::Fill))
                 .push(widget::tooltip(
                     widget::button::icon(widget::icon::from_name("media-skip-backward-symbolic"))
                         .on_press(Message::Previous)
@@ -188,7 +188,7 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
                     widget::text(fl!("next")),
                     Position::Bottom,
                 ))
-                .push(widget::horizontal_space().width(Length::Fill)),
+                .push(widget::space::horizontal().width(Length::Fill)),
         );
 
     // Other controls column
@@ -207,7 +207,7 @@ pub fn footer<'a>(app: &AppModel) -> Element<'a, Message> {
         widget::row()
             .align_y(Alignment::Center)
             .spacing(space_xxs)
-            .push(widget::horizontal_space().width(Length::FillPortion(1)))
+            .push(widget::space::horizontal().width(Length::FillPortion(1)))
             .push(
                 widget::button::icon(widget::icon::from_name(volume_icon))
                     .on_press(Message::ToggleMute),
