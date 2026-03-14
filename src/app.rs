@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-use crate::config::{AppTheme, CONFIG_VERSION, Config, State};
+use crate::config::{AppTheme, CONFIG_VERSION, Config, State, TitleSortMode};
 use crate::constants::*;
 use crate::fl;
 use crate::helpers::*;
@@ -84,6 +84,7 @@ pub struct AppModel {
     pub config: Config,
     /// Settings page / app theme dropdown labels
     app_theme_labels: Vec<String>,
+    title_sort_labels: Vec<String>,
     pub is_condensed: bool,
 
     config_handler: Option<cosmic_config::Config>,
@@ -175,6 +176,7 @@ pub enum Message {
     SliderSeek(f32),
     Surface(surface::Action),
     Tick,
+    TitleSort(TitleSortMode),
     ToggleContextPage(ContextPage),
     ToggleListRowAlignTop(bool),
     ToggleListTextWrap(bool),
@@ -288,6 +290,7 @@ impl cosmic::Application for AppModel {
                 })
                 .unwrap_or_default(),
             app_theme_labels: vec![fl!("match-desktop"), fl!("dark"), fl!("light")],
+            title_sort_labels: vec![fl!("alphabetical"), fl!("track-number")],
             is_condensed: false,
             config_handler: _flags.config_handler,
             state_handler: _flags.state_handler,
@@ -968,9 +971,10 @@ impl cosmic::Application for AppModel {
                 let playlist_ids: Vec<u32> =
                     self.playlist_service.all().iter().map(|p| p.id()).collect();
 
+                let title_sort = self.config.title_sort;
                 for id in playlist_ids {
                     if let Ok(playlist) = self.playlist_service.get_mut(id) {
-                        playlist.sort(new_sort_by.clone(), new_direction.clone());
+                        playlist.sort(new_sort_by.clone(), new_direction.clone(), title_sort);
                     }
                 }
             }
@@ -1265,6 +1269,23 @@ impl cosmic::Application for AppModel {
                 self.update_mpris();
             }
 
+            Message::TitleSort(title_sort) => {
+                config_set!(title_sort, title_sort);
+
+                let playlist_ids: Vec<u32> =
+                    self.playlist_service.all().iter().map(|p| p.id()).collect();
+
+                for id in playlist_ids {
+                    if let Ok(playlist) = self.playlist_service.get_mut(id) {
+                        playlist.sort(
+                            self.state.sort_by.clone(),
+                            self.state.sort_direction.clone(),
+                            title_sort,
+                        );
+                    }
+                }
+            }
+
             Message::ToggleContextPage(context_page) => {
                 if self.context_page == context_page {
                     // Close the context drawer if the toggled context page is the same.
@@ -1509,6 +1530,10 @@ impl AppModel {
             AppTheme::Light => 2,
             AppTheme::System => 0,
         };
+        let title_sort_selected = match self.config.title_sort {
+            TitleSortMode::Alphabetical => 0,
+            TitleSortMode::TrackNumber => 1,
+        };
 
         let mut library_column = widget::column();
 
@@ -1576,6 +1601,18 @@ impl AppModel {
                 .into(),
             settings::section()
                 .title(fl!("list-view"))
+                .add({
+                    settings::item::builder(fl!("title-sort")).control(widget::dropdown(
+                        &self.title_sort_labels,
+                        Some(title_sort_selected),
+                        move |index| {
+                            Message::TitleSort(match index {
+                                1 => TitleSortMode::TrackNumber,
+                                _ => TitleSortMode::Alphabetical,
+                            })
+                        },
+                    ))
+                })
                 .add({
                     settings::item::builder(fl!("wrap-text")).control(
                         toggler(self.config.list_text_wrap).on_toggle(Message::ToggleListTextWrap),
@@ -1731,6 +1768,7 @@ impl AppModel {
                 playlist.sort(
                     self.state.sort_by.clone(),
                     self.state.sort_direction.clone(),
+                    self.config.title_sort,
                 );
             }
         }
@@ -2220,6 +2258,7 @@ impl AppModel {
             lib_playlist.sort(
                 self.state.sort_by.clone(),
                 self.state.sort_direction.clone(),
+                self.config.title_sort,
             );
 
             let library = lib_playlist.clone();

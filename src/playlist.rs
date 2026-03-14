@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 
 use crate::app::{PlaylistKind, SortBy, SortDirection};
+use crate::config::TitleSortMode;
 use crate::fl;
 use crate::library::MediaMetaData;
 use chrono::prelude::*;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::{fmt, path::PathBuf};
+use std::{cmp::Ordering, fmt, path::PathBuf};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Playlist {
@@ -70,41 +71,35 @@ impl Playlist {
         self.tracks.len()
     }
 
-    pub fn sort(&mut self, sort_by: SortBy, sort_direction: SortDirection) {
-        match sort_by {
-            SortBy::Artist => {
-                self.tracks.sort_by(|a, b| {
-                    let ordering = a
-                        .metadata
-                        .artist
-                        .cmp(&b.metadata.artist)
-                        .then(a.metadata.album.cmp(&b.metadata.album))
-                        .then(a.metadata.track_number.cmp(&b.metadata.track_number));
-                    match sort_direction {
-                        SortDirection::Ascending => ordering,
-                        SortDirection::Descending => ordering.reverse(),
-                    }
-                });
+    pub fn sort(
+        &mut self,
+        sort_by: SortBy,
+        sort_direction: SortDirection,
+        title_sort: TitleSortMode,
+    ) {
+        self.tracks.sort_by(|a, b| {
+            let ordering = match sort_by {
+                SortBy::Artist => a
+                    .metadata
+                    .artist
+                    .cmp(&b.metadata.artist)
+                    .then(a.metadata.album.cmp(&b.metadata.album))
+                    .then_with(|| compare_title(a, b, title_sort)),
+
+                SortBy::Album => a
+                    .metadata
+                    .album
+                    .cmp(&b.metadata.album)
+                    .then_with(|| compare_title(a, b, title_sort)),
+
+                SortBy::Title => a.metadata.title.cmp(&b.metadata.title),
+            };
+
+            match sort_direction {
+                SortDirection::Ascending => ordering,
+                SortDirection::Descending => ordering.reverse(),
             }
-            SortBy::Album => {
-                self.tracks.sort_by(|a, b| {
-                    let ordering = a.metadata.album.cmp(&b.metadata.album);
-                    match sort_direction {
-                        SortDirection::Ascending => ordering,
-                        SortDirection::Descending => ordering.reverse(),
-                    }
-                });
-            }
-            SortBy::Title => {
-                self.tracks.sort_by(|a, b| {
-                    let ordering = a.metadata.title.cmp(&b.metadata.title);
-                    match sort_direction {
-                        SortDirection::Ascending => ordering,
-                        SortDirection::Descending => ordering.reverse(),
-                    }
-                });
-            }
-        }
+        });
     }
 
     pub fn push(&mut self, track: Track) {
@@ -209,5 +204,17 @@ impl Track {
 
     pub fn update_date_added(&mut self) {
         self.date_added = Local::now().to_string();
+    }
+}
+
+fn compare_title(a: &Track, b: &Track, title_sort: TitleSortMode) -> Ordering {
+    match title_sort {
+        TitleSortMode::Alphabetical => a.metadata.title.cmp(&b.metadata.title),
+        TitleSortMode::TrackNumber => a
+            .metadata
+            .album_disc_number
+            .cmp(&b.metadata.album_disc_number)
+            .then(a.metadata.track_number.cmp(&b.metadata.track_number))
+            .then_with(|| a.metadata.title.cmp(&b.metadata.title)),
     }
 }

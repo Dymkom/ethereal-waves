@@ -13,6 +13,12 @@ use std::collections::HashSet;
 pub const CONFIG_VERSION: u64 = 1;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum TitleSortMode {
+    Alphabetical,
+    TrackNumber,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum AppTheme {
     Dark,
     Light,
@@ -37,6 +43,7 @@ pub struct Config {
     pub library_paths: HashSet<String>,
     pub list_text_wrap: bool,
     pub list_row_align_top: bool,
+    pub title_sort: TitleSortMode,
 }
 
 impl Config {
@@ -67,6 +74,7 @@ impl Default for Config {
             library_paths: HashSet::new(),
             list_text_wrap: true,
             list_row_align_top: false,
+            title_sort: TitleSortMode::Alphabetical,
         }
     }
 }

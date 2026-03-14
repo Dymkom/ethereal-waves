@@ -45,6 +45,8 @@ add-now-playing-to = Add Now Playing to
 select-all = Select All
 one-track-selected = 1 track selected
 tracks-selected = tracks selected
+alphabetical = Alphabetical
+title-sort = Title Sort
 
 previous = Previous
 play = Play
